@@ -20,6 +20,7 @@ export function _makeCurrentMigrationRunner(
   parsedSettings: ParsedSettings,
   _once = false,
   shadow = false,
+  logStack = false,
 ): () => Promise<void> {
   async function run(): Promise<void> {
     const currentLocation = await getCurrentMigrationLocation(parsedSettings);
@@ -158,7 +159,7 @@ export function _makeCurrentMigrationRunner(
         })`,
       );
     } catch (e) {
-      logDbError(e);
+      logDbError(e, logStack);
       throw e;
     }
   }
@@ -169,6 +170,7 @@ export async function _watch(
   parsedSettings: ParsedSettings,
   once = false,
   shadow = false,
+  logStack = false,
 ): Promise<void> {
   await _migrate(parsedSettings, shadow);
 
@@ -181,7 +183,12 @@ export async function _watch(
     );
   }
 
-  const run = _makeCurrentMigrationRunner(parsedSettings, once, shadow);
+  const run = _makeCurrentMigrationRunner(
+    parsedSettings,
+    once,
+    shadow,
+    logStack,
+  );
   if (once) {
     return run();
   } else {
@@ -235,9 +242,10 @@ export async function watch(
   settings: Settings,
   once = false,
   shadow = false,
+  logStack = false,
 ): Promise<void> {
   const parsedSettings = await parseSettings(settings, shadow);
-  return _watch(parsedSettings, once, shadow);
+  return _watch(parsedSettings, once, shadow, logStack);
 }
 
 export const watchCommand: CommandModule<
@@ -245,6 +253,7 @@ export const watchCommand: CommandModule<
   {
     once: boolean;
     shadow: boolean;
+    stack: boolean;
   }
 > = {
   command: "watch",
@@ -262,8 +271,13 @@ export const watchCommand: CommandModule<
       default: false,
       description: "Applies changes to shadow DB.",
     },
+    stack: {
+      type: "boolean",
+      default: false,
+      description: "Include Javascript stacktraces in error reports.",
+    },
   },
   handler: async argv => {
-    await watch(await getSettings(), argv.once, argv.shadow);
+    await watch(await getSettings(), argv.once, argv.shadow, argv.stack);
   },
 };

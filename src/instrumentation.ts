@@ -58,7 +58,7 @@ export async function runQueryWithErrorInstrumentation(
   }
 }
 
-export const logDbError = (e: Error): void => {
+export const logDbError = (e: Error, includeStack = true): void => {
   /* eslint-disable no-console */
   e["_gmlogged"] = true;
   console.error("");
@@ -70,7 +70,9 @@ export const logDbError = (e: Error): void => {
     );
   }
   const { severity, code, detail, hint } = e as any;
-  console.error(indent(e.stack ? e.stack : e.message, 4));
+  if (includeStack) {
+    console.error(indent(e.stack ? e.stack : e.message, 4));
+  }
   console.error("");
   if (severity) {
     console.error(indent(`Severity:\t${severity}`, 4));
